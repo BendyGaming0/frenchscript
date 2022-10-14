@@ -113,7 +113,7 @@ class Parser {
 	public function new() {
 		line = 1;
 		opChars = "+*/-=!><&|^%~";
-		identChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_";
+		identChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_çéâêîôûàèìòùëïü";
 		var priorities = [
 			["%"],
 			["*", "/"],
@@ -584,7 +584,7 @@ class Parser {
 		var p1 = tokenMin;
 		#end
 		return switch( id ) {
-		case "if":
+		case "si":
 			ensure(TPOpen);
 			var cond = parseExpr();
 			ensure(TPClose);
@@ -596,7 +596,7 @@ class Parser {
 				semic = true;
 				tk = token();
 			}
-			if( Type.enumEq(tk,TId("else")) )
+			if( Type.enumEq(tk,TId("autre")) )
 				e2 = parseExpr();
 			else {
 				push(tk);
@@ -617,35 +617,35 @@ class Parser {
 			else
 				push(tk);
 			mk(EVar(ident,t,e),p1,(e == null) ? tokenMax : pmax(e));
-		case "while":
+		case "pendant":
 			var econd = parseExpr();
 			var e = parseExpr();
 			mk(EWhile(econd,e),p1,pmax(e));
-		case "do":
+		case "fais":
 			var e = parseExpr();
 			var tk = token();
 			switch(tk)
 			{
-				case TId("while"): // Valid
+				case TId("pendant"): // Valid
 				default: unexpected(tk);
 			}
 			var econd = parseExpr();
 			mk(EDoWhile(econd,e),p1,pmax(econd));
-		case "for":
+		case "pour":
 			ensure(TPOpen);
 			var vname = getIdent();
-			ensureToken(TId("in"));
+			ensureToken(TId("dans"));
 			var eiter = parseExpr();
 			ensure(TPClose);
 			var e = parseExpr();
 			mk(EFor(vname,eiter,e),p1,pmax(e));
-		case "break": mk(EBreak);
-		case "continue": mk(EContinue);
-		case "else": unexpected(TId(id));
-		case "inline":
-			if( !maybe(TId("function")) ) unexpected(TId("inline"));
-			return parseStructure("function");
-		case "function":
+		case "pause": mk(EBreak);
+		case "continuez": mk(EContinue);
+		case "autre": unexpected(TId(id));
+		case "enLigne":
+			if( !maybe(TId("fonction")) ) unexpected(TId("enligne"));
+			return parseStructure("fonction");
+		case "fonction":
 			var tk = token();
 			var name = null;
 			switch( tk ) {
@@ -654,12 +654,12 @@ class Parser {
 			}
 			var inf = parseFunctionDecl();
 			mk(EFunction(inf.args, inf.body, name, inf.ret),p1,pmax(inf.body));
-		case "return":
+		case "revenir":
 			var tk = token();
 			push(tk);
 			var e = if( tk == TSemicolon ) null else parseExpr();
 			mk(EReturn(e),p1,if( e == null ) tokenMax else pmax(e));
-		case "new":
+		case "nouveau":
 			var a = new Array();
 			a.push(getIdent());
 			while( true ) {
@@ -676,12 +676,12 @@ class Parser {
 			}
 			var args = parseExprList(TPClose);
 			mk(ENew(a.join("."),args),p1);
-		case "throw":
+		case "lance":
 			var e = parseExpr();
 			mk(EThrow(e),p1,pmax(e));
-		case "try":
+		case "essayer":
 			var e = parseExpr();
-			ensureToken(TId("catch"));
+			ensureToken(TId("attraper"));
 			ensure(TPOpen);
 			var vname = getIdent();
 			ensure(TDoubleDot);
@@ -693,14 +693,14 @@ class Parser {
 			ensure(TPClose);
 			var ec = parseExpr();
 			mk(ETry(e, vname, t, ec), p1, pmax(ec));
-		case "switch":
+		case "changer":
 			var e = parseExpr();
 			var def = null, cases = [];
 			ensure(TBrOpen);
 			while( true ) {
 				var tk = token();
 				switch( tk ) {
-				case TId("case"):
+				case TId("cas"):
 					var c = { values : [], expr : null };
 					cases.push(c);
 					while( true ) {
@@ -722,7 +722,7 @@ class Parser {
 						tk = token();
 						push(tk);
 						switch( tk ) {
-						case TId("case"), TId("default"), TBrClose:
+						case TId("cas"), TId("défaut"), TBrClose:
 							break;
 						case TEof if( resumeErrors ):
 							break;
@@ -736,7 +736,7 @@ class Parser {
 						mk(EBlock([]), tokenMin, tokenMin);
 					else
 						mk(EBlock(exprs), pmin(exprs[0]), pmax(exprs[exprs.length - 1]));
-				case TId("default"):
+				case TId("défaut"):
 					if( def != null ) unexpected(tk);
 					ensure(TDoubleDot);
 					var exprs = [];
@@ -744,7 +744,7 @@ class Parser {
 						tk = token();
 						push(tk);
 						switch( tk ) {
-						case TId("case"), TId("default"), TBrClose:
+						case TId("cas"), TId("défaut"), TBrClose:
 							break;
 						case TEof if( resumeErrors ):
 							break;
@@ -1096,9 +1096,9 @@ class Parser {
 		var isPrivate = false, isExtern = false;
 		while( true ) {
 			switch( ident ) {
-			case "private":
+			case "privé":
 				isPrivate = true;
-			case "extern":
+			case "externe":
 				isExtern = true;
 			default:
 				break;
@@ -1106,11 +1106,11 @@ class Parser {
 			ident = getIdent();
 		}
 		switch( ident ) {
-		case "package":
+		case "forfait":
 			var path = parsePath();
 			ensure(TSemicolon);
 			return DPackage(path);
-		case "import":
+		case "importer":
 			var path = [getIdent()];
 			var star = false;
 			while( true ) {
@@ -1131,7 +1131,7 @@ class Parser {
 			}
 			ensure(TSemicolon);
 			return DImport(path, star);
-		case "class":
+		case "classer":
 			var name = getIdent();
 			var params = parseParams();
 			var extend = null;
@@ -1140,9 +1140,9 @@ class Parser {
 			while( true ) {
 				var t = token();
 				switch( t ) {
-				case TId("extends"):
+				case TId("étend"):
 					extend = parseType();
-				case TId("implements"):
+				case TId("appliquer"):
 					implement.push(parseType());
 				default:
 					push(t);
@@ -1165,7 +1165,7 @@ class Parser {
 				isPrivate : isPrivate,
 				isExtern : isExtern,
 			});
-		case "typedef":
+		case "déftype":
 			var name = getIdent();
 			var params = parseParams();
 			ensureToken(TOp("="));
@@ -1189,19 +1189,19 @@ class Parser {
 		while( true ) {
 			var id = getIdent();
 			switch( id ) {
-			case "override":
+			case "outrepasser":
 				access.push(AOverride);
 			case "public":
 				access.push(APublic);
-			case "private":
+			case "privé":
 				access.push(APrivate);
-			case "inline":
+			case "enligne":
 				access.push(AInline);
-			case "static":
+			case "statique":
 				access.push(AStatic);
 			case "macro":
 				access.push(AMacro);
-			case "function":
+			case "fonction":
 				var name = getIdent();
 				var inf = parseFunctionDecl();
 				return {
@@ -1602,7 +1602,7 @@ class Parser {
 
 	function preprocess( id : String ) : Token {
 		switch( id ) {
-		case "if":
+		case "si":
 			var e = parsePreproCond();
 			if( evalPreproCond(e) ) {
 				preprocStack.push({ r : true });
@@ -1611,12 +1611,12 @@ class Parser {
 			preprocStack.push({ r : false });
 			skipTokens();
 			return token();
-		case "else", "elseif" if( preprocStack.length > 0 ):
+		case "autre", "sinonsi" if( preprocStack.length > 0 ):
 			if( preprocStack[preprocStack.length - 1].r ) {
 				preprocStack[preprocStack.length - 1].r = false;
 				skipTokens();
 				return token();
-			} else if( id == "else" ) {
+			} else if( id == "autre" ) {
 				preprocStack.pop();
 				preprocStack.push({ r : true });
 				return token();
@@ -1625,7 +1625,7 @@ class Parser {
 				preprocStack.pop();
 				return preprocess("if");
 			}
-		case "end" if( preprocStack.length > 0 ):
+		case "finir" if( preprocStack.length > 0 ):
 			preprocStack.pop();
 			return token();
 		default:
